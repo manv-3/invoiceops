@@ -62,6 +62,10 @@ InvoiceOps accepts PDF, PNG, JPG, and JPEG documents. For each upload, it:
 7. creates or updates the relevant Notion records; and
 8. routes the invoice to approval processing or human review.
 
+When no vendor matches, InvoiceOps creates an untrusted Vendor record with payment details left
+unapproved and routes the invoice to human review. A matching vendor is checked by GSTIN first and
+then by normalized name.
+
 Typical extracted fields include:
 
 - vendor name and identifier;
@@ -170,3 +174,5 @@ The architecture is intentionally small: one FastAPI service, local storage for 
 - Pytest
 
 The implementation is being built incrementally. Provider access, credentials, live Notion workspaces, and generated approval packets are separate verification boundaries; local code or fixture checks do not by themselves prove provider, deployment, or production status.
+
+For production configuration and post-deployment verification, use [`DEPLOYMENT.md`](DEPLOYMENT.md).
