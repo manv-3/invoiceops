@@ -2,9 +2,11 @@
 
 ## Current phase
 
-Phase 1 establishes the FastAPI application foundation, validated environment configuration, local storage directories, and the `/health` liveness endpoint.
-
-No invoice processing, Gemini requests, Notion requests, approvals, or external actions are implemented yet. Provider credentials are intentionally optional until the corresponding integration phase.
+The full invoice-processing workflow is implemented: intake, extraction,
+deterministic validation, human review, approval-packet generation, and audit
+logging.  Dev-mode mocks are available for both Gemini (extraction) and Notion
+(operations interface) so the entire workflow can be exercised without
+provider credentials.
 
 ## Local setup
 
@@ -29,6 +31,13 @@ The expected response is:
   "service": "invoiceops",
   "version": "0.1.0"
 }
+```
+
+Upload an invoice (dev mode returns mock extraction):
+
+```bash
+curl -X POST http://127.0.0.1:8000/invoices/upload \
+  -F "file=@invoice.pdf;type=application/pdf"
 ```
 
 ## Verification

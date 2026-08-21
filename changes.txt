@@ -1,0 +1,162 @@
+================================================================================
+ InvoiceOps — Changes Log
+ Date: 2026-08-21
+================================================================================
+
+SUMMARY
+-------
+Completed the full InvoiceOps workflow from Phase 1 (foundation only) to a
+fully working invoice processing system. 19 new files created, 3 existing
+files updated. All 31 tests pass, ruff lint clean, ruff format clean.
+
+
+NEW FILES CREATED (19)
+----------------------
+
+1. app/models/invoice.py
+   - LineItem: single line item from an invoice (description, qty, unit_price, amount)
+   - InvoiceData: all extracted fields (vendor, dates, currency, amounts, PO ref, etc.)
+   - ExtractionResult: wraps InvoiceData + confidence scores
+   - InvoiceStatus (StrEnum): received → extracting → extracted → validating →
+     validated → needs_review → approved → rejected → action_created → failed
+   - ValidationFinding: one finding from a validation rule (rule, severity, message)
+   - ValidationResult: aggregate pass/fail + list of findings + needs_review flag
+   - ReviewDecision: human decision (approve/reject/override) + reviewer note
+   - InvoiceRecord: full lifecycle record with status, fingerprint, extraction,
+     validation, review, action_id, timestamps, notion_page_id
+   - ApprovalPacket: payment-ready output (action_id, vendor, amount, etc.)
+   - ReviewRequest: inbound request body for the review endpoint
+
+2. app/models/run_log.py
+   - RunLogEntry: audit trail entry (invoice_id, timestamp, event, detail, metadata)
+
+3. app/utils/fingerprint.py
+   - compute_fingerprint(): SHA-256 hex digest of document bytes
+
+4. app/utils/storage.py
+   - ALLOWED_EXTENSIONS: {.pdf, .png, .jpg, .jpeg}
+   - ALLOWED_CONTENT_TYPES: {application/pdf, image/png, image/jpeg}
+   - safe_extension(): validates file extension
+   - store_document(): saves file with UUID-based name, returns stored path
+
+5. app/utils/money.py
+   - TOLERANCE: Decimal("0.01") for monetary comparison
+   - decimal_or_none(): safe coerce to Decimal
+   - amounts_match(): compare two Decimals within tolerance
+   - check_total(): verify subtotal + tax == total
+
+6. app/services/store.py
+   - In-memory dict-backed invoice store
+   - save(), get(), get_by_fingerprint(), find_by_vendor_and_number()
+   - list_by_status(), all_records(), clear()
+
+7. app/services/extraction.py
+   - extract_invoice(): async function that extracts structured data from documents
+   - Dev mode: returns deterministic mock data (Acme Corp, INV-2024-0042, etc.)
+   - Production: calls Google GenAI (Gemini) with the document, parses JSON response
+
+8. app/services/validation.py
+   - validate_invoice(): runs all deterministic rules, returns ValidationResult
+   - Rules implemented:
+     * required_field: vendor_name, invoice_number, total, currency must be present
+     * total_mismatch: subtotal + tax must equal total (within 0.01 tolerance)
+     * duplicate_fingerprint: same document SHA-256 already exists
+     * duplicate_vendor_invoice: same vendor + invoice number combination exists
+     * low_confidence: extraction confidence below 0.80 threshold
+
+9. app/services/workflow.py
+   - _TRANSITIONS dict: defines all legal status transitions
+   - IllegalTransitionError: raised on invalid state changes
+   - transition(): validates and applies status change, returns new record
+
+10. app/services/notion_client.py
+    - Dev mode: all calls are logged no-ops returning dev-page-xxx IDs
+    - Production: uses HTTPX to call Notion API v2022-06-28
+    - create_invoice_page(): creates invoice page in Notion Invoices DB
+    - update_invoice_page(): updates properties on existing page
+    - add_run_log_entry(): adds row to Notion Run Log DB
+
+11. app/services/run_log.py
+    - log_event(): records RunLogEntry in memory + forwards to Notion
+    - get_entries(): retrieve all entries for an invoice
+    - clear(): reset for testing
+
+12. app/routes/invoices.py
+    - POST /invoices/upload
+      * Validates file type (PDF/PNG/JPG/JPEG) and size (max 15MB default)
+      * Stores document with UUID-based filename
+      * Computes SHA-256 fingerprint
+      * Runs extraction (mock in dev mode, Gemini in production)
+      * Runs deterministic validation
+      * Routes to NEEDS_REVIEW or auto-approves clean invoices
+      * Creates Notion page
+      * Returns full InvoiceRecord (201)
+    - GET /invoices/{invoice_id}
+      * Returns current state of a single invoice (404 if not found)
+    - GET /invoices/
+      * Returns all invoice records
+    - POST /invoices/{invoice_id}/review
+      * Accepts approve/reject/override decision
+      * Override requires reviewer_note
+      * Only works on invoices in needs_review status (409 otherwise)
+      * Updates Notion page status
+
+13. app/workers/approval_worker.py
+    - run_approval_worker(): background asyncio task
+    - Polls store for APPROVED invoices every N seconds (default 10)
+    - Generates JSON approval packet in storage/approved/{action_id}.json
+    - Transitions invoice to ACTION_CREATED (exactly-once)
+    - Updates Notion page status
+
+14-19. Test files:
+    - tests/test_models.py (9 tests): model defaults, UUID generation, timestamps
+    - tests/test_validation.py (5 tests): valid pass, missing fields, math mismatch,
+      low confidence, duplicate fingerprint
+    - tests/test_fingerprint.py (3 tests): determinism, uniqueness, hex format
+    - tests/test_workflow.py (7 tests): valid transition, illegal transition,
+      terminal states, timestamp update, full happy path, review path, rejection path
+    - tests/test_upload.py (4 tests): PDF upload 201, reject unsupported type,
+      GET by ID, GET missing 404
+    - tests/test_approval.py (2 tests): JSON serialization, unique action IDs
+
+
+EXISTING FILES UPDATED (3)
+--------------------------
+
+1. app/main.py
+   BEFORE: Only included health_router
+   AFTER:  Added invoices_router, starts approval_worker as background task
+           in lifespan, cancels worker on shutdown
+
+2. app/models/__init__.py
+   BEFORE: Just a docstring
+   AFTER:  Re-exports all model types for convenient imports
+
+3. CODEX.md
+   BEFORE: Described Phase 1 only
+   AFTER:  Describes the complete workflow, added upload curl example
+
+
+EXISTING FILES NOT CHANGED
+--------------------------
+- app/__init__.py (unchanged)
+- app/config.py (unchanged)
+- app/models/health.py (unchanged)
+- app/routes/__init__.py (unchanged)
+- app/routes/health.py (unchanged)
+- app/utils/__init__.py (unchanged)
+- app/workers/__init__.py (unchanged)
+- app/services/__init__.py (docstring only, kept clean to avoid circular imports)
+- pyproject.toml (unchanged)
+- requirements.txt (unchanged)
+- .env.example (unchanged)
+- .gitignore (unchanged)
+- tests/test_health.py (unchanged)
+
+
+VERIFICATION RESULTS
+--------------------
+- pytest: 31 passed in 0.66s
+- ruff check: All checks passed
+- ruff format: All 32 files formatted
+- compileall: Clean compilation
