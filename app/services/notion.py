@@ -61,6 +61,7 @@ class NotionClient:
         self._http_client = http_client or httpx.AsyncClient(
             base_url=NOTION_API_BASE_URL,
             timeout=httpx.Timeout(30.0),
+            verify=False,
         )
         self._headers = {
             "Authorization": f"Bearer {token}",

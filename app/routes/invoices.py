@@ -64,6 +64,7 @@ async def upload_invoice(
     except UploadError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     except NotionApiError as exc:
+        print(f"Notion API Error: {exc}")
         raise HTTPException(status_code=502, detail="Notion write failed") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
