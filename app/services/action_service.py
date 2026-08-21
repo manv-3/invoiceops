@@ -90,8 +90,9 @@ class ActionPacketService:
             "source_invoice_reference": invoice.source_url or invoice.document_fingerprint,
         }
         temporary = self.approved_dir / f".{action_id}-{uuid4().hex}.tmp"
-        temporary.write_text(json.dumps(packet, indent=2, sort_keys=True), encoding="utf-8")
-        with temporary.open("rb") as file_handle:
+        with temporary.open("w", encoding="utf-8") as file_handle:
+            file_handle.write(json.dumps(packet, indent=2, sort_keys=True))
+            file_handle.flush()
             os.fsync(file_handle.fileno())
         try:
             os.link(temporary, final_path)
