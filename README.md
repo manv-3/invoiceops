@@ -110,6 +110,18 @@ Reviewers can:
 
 Workflow transitions are centralized and validated. Original extracted values are preserved when a reviewer overrides them.
 
+### Notion review queue
+
+The live operations interface exposes extracted invoice values, risk flags, confidence, validation
+status, and the pending human decision in one review queue:
+
+![InvoiceOps Notion review queue](assets/notion-app-working-demo.jpg)
+
+The corresponding Run Log keeps intake, extraction, validation, review, approval, and external
+action stages auditable:
+
+![InvoiceOps Notion Run Log](assets/run-log-notion-page.jpg)
+
 ## Action and safety boundary
 
 InvoiceOps does not perform real financial payments. After an invoice is automatically cleared or explicitly approved, it generates a payment-ready approval packet in `storage/approved/` and records its unique action ID in Notion.
