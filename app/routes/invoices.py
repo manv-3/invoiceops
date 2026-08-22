@@ -6,7 +6,7 @@ import hmac
 from io import BytesIO
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status, BackgroundTasks
 
 from app.config import Settings, get_settings
 from app.models.invoice import InvoiceIntakeResponse, InvoiceRecord, InvoiceStatusResponse
@@ -100,11 +100,12 @@ async def process_ingested_invoice(
             raise HTTPException(status_code=502, detail="Notion processing read failed") from exc
         return current or invoice
     except NotionApiError as exc:
+        print(f"Notion processing write error: {exc}")
         raise HTTPException(status_code=502, detail="Notion processing write failed") from exc
 
 
 @router.post("/webhooks/telegram", summary="Receive Telegram invoice messages")
-async def telegram_webhook(request: Request) -> dict[str, Any]:
+async def telegram_webhook(request: Request, background_tasks: BackgroundTasks) -> dict[str, Any]:
     settings = runtime_settings(request)
     if settings.telegram_bot_token is None:
         raise HTTPException(status_code=503, detail="Telegram integration is not configured")
@@ -128,38 +129,33 @@ async def telegram_webhook(request: Request) -> dict[str, Any]:
     telegram = TelegramClient(
         settings.telegram_bot_token.get_secret_value(), settings.telegram_api_base_url
     )
-    try:
-        file_path = await telegram.get_file_path(file_id)
-        content = await telegram.download_file(file_path)
-        if len(content) > settings.max_upload_mb * 1024 * 1024:
-            await telegram.send_message(
-                chat_id, "Invoice rejected: document exceeds the size limit."
+    
+    async def process_background():
+        try:
+            file_path = await telegram.get_file_path(file_id)
+            content = await telegram.download_file(file_path)
+            if len(content) > settings.max_upload_mb * 1024 * 1024:
+                await telegram.send_message(
+                    chat_id, "Invoice rejected: document exceeds the size limit."
+                )
+                return
+            client = notion_client(request, settings)
+            upload = UploadFile(
+                file=BytesIO(content), filename=filename, headers={"content-type": mime_type}
             )
-            return {"status": "rejected", "reason": "document too large"}
-        client = notion_client(request, settings)
-        upload = UploadFile(
-            file=BytesIO(content), filename=filename, headers={"content-type": mime_type}
-        )
-        invoice = await InvoiceIntakeService(client, settings).ingest(upload)
-        invoice = await process_ingested_invoice(request, settings, client, invoice)
-        await telegram.send_message(
-            chat_id,
-            f"Invoice {invoice.invoice_id} received. Status: {invoice.processing_status.value}.",
-        )
-        return {
-            "status": "accepted",
-            "invoice_id": invoice.invoice_id,
-            "processing_status": invoice.processing_status,
-        }
-    except UploadError as exc:
-        await telegram.send_message(chat_id, f"Invoice rejected: {exc}.")
-        return {"status": "rejected", "reason": str(exc)}
-    except TelegramApiError as exc:
-        raise HTTPException(status_code=502, detail="Telegram request failed") from exc
-    except NotionApiError as exc:
-        raise HTTPException(status_code=502, detail="Notion write failed") from exc
-    finally:
-        await telegram.close()
+            invoice = await InvoiceIntakeService(client, settings).ingest(upload)
+            invoice = await process_ingested_invoice(request, settings, client, invoice)
+            await telegram.send_message(
+                chat_id,
+                f"Invoice {invoice.invoice_id} received. Status: {invoice.processing_status.value}.",
+            )
+        except Exception as exc:
+            await telegram.send_message(chat_id, f"Invoice rejected or failed: {exc}")
+        finally:
+            await telegram.close()
+            
+    background_tasks.add_task(process_background)
+    return {"status": "accepted"}
 
 
 @router.get(
