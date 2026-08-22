@@ -11,6 +11,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+temp_auto_push.bat
 .coverage
 htmlcov/
 
@@ -24,3 +25,5 @@ storage/incoming/*
 !storage/incoming/.gitkeep
 storage/approved/*
 !storage/approved/.gitkeep
+.gitignore
+branch_structure.json
