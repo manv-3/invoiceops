@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        .time { font-weight: bold; color: #e74c3c; background: #fdf2f0; padding: 2px 8px; border-radius: 4px; }
+        .visual { background: #f8f9fa; padding: 15px; border-left: 4px solid #f39c12; margin: 10px 0; }
+        .audio { background: #f0f7fb; padding: 15px; border-left: 4px solid #3498db; margin: 10px 0; font-style: italic; }
+        .tips { margin-top: 40px; background: #e8f6f3; padding: 20px; border-radius: 8px; }
+        ul { padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🎬 1-Minute Demo: The Telegram Workflow</h1>
+    <p>This script highlights the seamless 'text-to-invoice' workflow using Telegram and Notion, demonstrating the power of AI without showing any code or terminals.</p>
+    
+    <h2><span class="time">[0:00 - 0:10]</span> The Hook (The Problem)</h2>
+    <div class="visual"><strong>🎥 Visual:</strong> Split screen. On the left, your empty Notion "Invoices" database. On the right, your Telegram app open to your bot.</div>
+    <div class="audio"><strong>🎙️ Voiceover:</strong> "Processing invoices usually means manual data entry and messy spreadsheets. What if you could just text your invoices to an AI?"</div>
+
+    <h2><span class="time">[0:10 - 0:25]</span> The Trigger (Telegram)</h2>
+    <div class="visual"><strong>🎥 Visual:</strong> On the Telegram side of the screen, drag and drop the invoice PDF file into the chat and hit send.</div>
+    <div class="audio"><strong>🎙️ Voiceover:</strong> "We built an InvoiceOps bot. When a vendor emails you a PDF, you just forward it directly to the bot. No app to install, no complicated uploads."</div>
+
+    <h2><span class="time">[0:25 - 0:45]</span> The Magic (Notion & AI)</h2>
+    <div class="visual"><strong>🎥 Visual:</strong> Focus on the Notion window. Wait for the new invoice to magically appear in the database! Click the row to open the page.</div>
+    <div class="audio"><strong>🎙️ Voiceover:</strong> "Within seconds, Google's Gemini AI reads the document, extracts the data, and pushes it directly to our operations team in Notion. Look closely—it perfectly extracted the Vendor, calculated the Tax and Subtotal, and even flagged the invoice for human review."</div>
+
+    <h2><span class="time">[0:45 - 1:00]</span> The Human Loop</h2>
+    <div class="visual"><strong>🎥 Visual:</strong> Scroll down to show the attached PDF, then change the Human Decision dropdown from "Pending" to "Approve".</div>
+    <div class="audio"><strong>🎙️ Voiceover:</strong> "If the math checks out, a human just clicks 'Approve'. The system instantly detects the approval and routes it for payment. No data entry, no code. Just AI doing the heavy lifting."</div>
+
+    <div class="tips">
+        <h2>💡 Pro-Tips for Recording</h2>
+        <ul>
+            <li><strong>Keep the terminal hidden!</strong> The best part about this demo is that it proves non-technical people can use it without ever touching code.</li>
+            <li><strong>The Split Screen:</strong> If you can record a split screen showing Telegram and Notion side-by-side, the moment the row magically pops up in Notion while you are looking at Telegram is the ultimate "wow" factor.</li>
+            <li><strong>Use the sample data:</strong> Use the <code>invoice-fixture.pdf</code> in the sample folder for the best extraction results during the demo.</li>
+        </ul>
+    </div>
+</body>
+</html>
