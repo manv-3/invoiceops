@@ -328,7 +328,8 @@ class NotionClient:
 
     async def create_vendor(self, vendor: VendorRecord) -> VendorRecord:
         properties: dict[str, Any] = {
-            "Vendor Name": _title(vendor.vendor_name),
+            "Vendor": _title(vendor.vendor_name),
+            "Vendor Name": _rich_text(vendor.vendor_name),
             "Vendor ID": _rich_text(vendor.vendor_id),
             "Active Status": _select(vendor.active_status),
             "Trusted Vendor": {"checkbox": vendor.trusted_vendor},
